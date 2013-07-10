@@ -1,21 +1,20 @@
 import gevent
-gevent.monkey.patch_all()
 
 from socket import error as SocketError
 from circus import logger
 
 from itertools import chain as ichain
-from functools import partial
 
 from gevent.server import StreamServer
 from rfc822 import Message
+
 
 class ProxyStream(object):
     BUFFER_SIZE = 4096
 
     def __init__(self, raw_requestline, message, proxy_socket, proxy_to):
         self.message = message
-        self.proxy_socket = proxy_socket
+        self.proxy_socket = gevent.socket.socket(_sock=proxy_socket)
         self.requestline = raw_requestline
         self.endpoint = gevent.socket.create_connection(('127.0.0.1', proxy_to))
 
@@ -54,6 +53,7 @@ class ProxyStream(object):
 
         on_exit.set()
 
+
 class RequestRouter(object):
     MAX_REQUEST_LINE = 8192
 
@@ -63,8 +63,8 @@ class RequestRouter(object):
 
     def __init__(self, config, socket):
         self.config = config
-        self.socket = socket
-        self.rfile = socket.makefile('rb', -1)
+        self.socket = gevent.socket.socket(_sock=socket)
+        self.rfile = self.socket.makefile('rb', -1)
         self.message = None
 
     def close(self):
@@ -91,6 +91,7 @@ class RequestRouter(object):
             self.socket.sendall(self.BAD_REQUEST_RESPONSE)
             return False
 
+        # TODO: move self.rfile to FileObjectThread when available, otherwise is blocking
         self.message = Message(self.rfile, 0)
 
         host = self.message.get('Host', '')
@@ -115,6 +116,7 @@ class RequestRouter(object):
         except:
             return False
 
+
 class VirtualHostsConfig(object):
     def __init__(self):
         self.default_vhost_port = None
@@ -123,11 +125,17 @@ class VirtualHostsConfig(object):
     def add_vhost(self, host, port):
         self.vhosts[host] = port
 
+    def remove_vhost(self, host):
+        port = self.vhosts.pop(host, None)
+        if port is not None and self.default_vhost_port == port:
+            self.default_vhost_port = None
+
     def set_default(self, port):
         self.default_vhost_port = port
 
     def get_vhost(self, host):
         return self.vhosts.get(host, self.default_vhost_port)
+
 
 class ProxyServer(StreamServer):
     def __init__(self, listener, backlog=None, spawn='default'):
@@ -135,9 +143,10 @@ class ProxyServer(StreamServer):
         self.config = VirtualHostsConfig()
 
     def handle(self, socket, address):
+        router = None
         try:
             router = RequestRouter(self.config, socket)
             router.handle()
         finally:
-            router.close()
-
+            if router is not None:
+                router.close()

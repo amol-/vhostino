@@ -3,6 +3,7 @@ from circus.plugins import CircusPlugin
 
 from .server import ProxyServer
 
+
 class VHostino(CircusPlugin):
     name = 'vhostino'
 
@@ -65,5 +66,5 @@ class VHostino(CircusPlugin):
         for worker in status['statuses']:
             self._setup_vhost(sockets, worker)
 
-        self.server.start()
-
+        logger.info('VHosting: Serving on %d', self.server.server_port)
+        self.server.serve_forever()
