@@ -19,7 +19,7 @@ should just work for most of the users
 Using VHostino
 ---------------------------------
 
-Simply name your watcher and socket as the domain they have to serve and set
+Simply **name your watcher and socket as the domain** they have to serve and set
 ``vhostino.vhost = True`` to make them serve through virtual hosts on the vhostino ``port``::
 
     [plugin:vhostino]
@@ -48,7 +48,7 @@ Default Virtual Host
 ---------------------------
 
 By default VHostino will answer with a 404 error whenever a non configured host is requested,
-to serve a default virtual host simply set the ``vhosting.default_vhost = True`` option inside
+to serve a default virtual host simply set the ``vhostino.default_vhost = True`` option inside
 a watcher, whenever a virtual host is not available to serve the request it will be proxied to
 that process.
 
