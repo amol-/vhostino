@@ -10,7 +10,7 @@ class VHostino(CircusPlugin):
     def __init__(self, endpoint, pubsub_endpoint, check_delay, ssh_server, **config):
         super(VHostino, self).__init__(endpoint, pubsub_endpoint, check_delay, ssh_server, **config)
         self.server = ProxyServer((config.get('host', '0.0.0.0'),
-                                   config.get('port', 8000)))
+                                   int(config.get('port', 8000))))
 
     def handle_recv(self, data):
         # As there seems to be no way to add/remove sockets
